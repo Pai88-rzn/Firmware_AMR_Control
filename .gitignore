@@ -1,0 +1,26 @@
+# Firmware build output
+**/build/
+**/.pio/
+
+# Generated firmware artifacts
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+
+# IDE and local tooling
+.metadata/
+.vscode/.history/
+*.user
+*.suo
+
+# Python cache and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS metadata
+.DS_Store
+Thumbs.db

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMR 3D IMU Real-Time Visualizer (GPRP Platform)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
+    body { background: #0f141c; color: #e2e8f0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+    header {
+      background: #1a2230; padding: 12px 20px; border-bottom: 1px solid #2d3748;
+      display: flex; justify-content: space-between; align-items: center; z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand h1 { font-size: 1.1rem; font-weight: 700; color: #38bdf8; letter-spacing: 0.5px; }
+    .brand .badge { background: #0369a1; color: #e0f2fe; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+    .actions { display: flex; gap: 10px; align-items: center; }
+    button {
+      padding: 8px 14px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer;
+      font-size: 0.85rem; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-connect { background: #0284c7; color: white; }
+    .btn-connect:hover { background: #0369a1; }
+    .btn-sim { background: #334155; color: #cbd5e1; }
+    .btn-sim:hover { background: #475569; }
+    .btn-active { background: #16a34a !important; color: white; }
+    #main-container { flex: 1; position: relative; display: flex; }
+    #canvas-container { flex: 1; height: 100%; }
+    #telemetry-panel {
+      position: absolute; top: 16px; left: 16px; width: 320px; background: rgba(26, 34, 48, 0.88);
+      backdrop-filter: blur(8px); border: 1px solid #334155; border-radius: 8px; padding: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: auto;
+    }
+    .panel-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 12px; font-weight: 700; }
+    .telemetry-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; }
+    .telemetry-val { font-weight: 700; color: #38bdf8; }
+    .calib-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0; text-align: center; }
+    .calib-box { background: #0f172a; padding: 6px 2px; border-radius: 4px; border: 1px solid #334155; }
+    .calib-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; }
+    .calib-val { font-size: 0.85rem; font-weight: 700; margin-top: 2px; }
+    .cal-0 { color: #ef4444; }
+    .cal-1 { color: #f97316; }
+    .cal-2 { color: #eab308; }
+    .cal-3 { color: #22c55e; }
+    .grid-values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #0f172a; padding: 8px; border-radius: 6px; margin-top: 6px; }
+    .val-cell { text-align: center; }
+    .val-cell .lbl { font-size: 0.65rem; color: #64748b; }
+    .val-cell .num { font-size: 0.8rem; font-weight: 700; color: #f1f5f9; }
+    #connection-status { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; }
+    .dot-connected { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .dot-sim { background: #a855f7; box-shadow: 0 0 8px #a855f7; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>AMR 3D Orientation Visualizer</h1>
+      <span class="badge">BNO055 + STM32F103</span>
+    </div>
+    <div class="actions">
+      <div id="connection-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Disconnected</span>
+      </div>
+      <button class="btn-connect" id="btn-serial">Connect Web Serial</button>
+      <button class="btn-sim" id="btn-sim">Virtual Demo</button>
+    </div>
+  </header>
+
+  <div id="main-container">
+    <div id="canvas-container"></div>
+
+    <div id="telemetry-panel">
+      <div class="panel-title">Orientation (Euler Angles)</div>
+      <div class="grid-values">
+        <div class="val-cell"><div class="lbl">ROLL</div><div class="num" id="val-roll">0.0°</div></div>
+        <div class="val-cell"><div class="lbl">PITCH</div><div class="num" id="val-pitch">0.0°</div></div>
+        <div class="val-cell"><div class="lbl">YAW</div><div class="num" id="val-yaw">0.0°</div></div>
+      </div>
+
+      <div class="panel-title" style="margin-top: 14px;">Calibration Quality</div>
+      <div class="calib-grid">
+        <div class="calib-box"><div class="calib-label">SYS</div><div class="calib-val cal-0" id="cal-sys">0/3</div></div>
+        <div class="calib-box"><div class="calib-label">GYRO</div><div class="calib-val cal-0" id="cal-gyro">0/3</div></div>
+        <div class="calib-box"><div class="calib-label">ACC</div><div class="calib-val cal-0" id="cal-acc">0/3</div></div>
+        <div class="calib-box"><div class="calib-label">MAG</div><div class="calib-val cal-0" id="cal-mag">0/3</div></div>
+      </div>
+
+      <div class="panel-title" style="margin-top: 10px;">Inertial Vectors</div>
+      <div class="telemetry-row">
+        <span>Linear Accel (m/s²)</span>
+        <span class="telemetry-val" id="val-accel">[0.0, 0.0, 0.0]</span>
+      </div>
+      <div class="telemetry-row">
+        <span>Angular Rate (deg/s)</span>
+        <span class="telemetry-val" id="val-gyro">[0.0, 0.0, 0.0]</span>
+      </div>
+
+      <div class="panel-title" style="margin-top: 14px;">System Health</div>
+      <div class="telemetry-row">
+        <span>Packet Rate</span>
+        <span class="telemetry-val" id="val-rate">0 Hz</span>
+      </div>
+      <div class="telemetry-row">
+        <span>Packets Received</span>
+        <span class="telemetry-val" id="val-pkts">0</span>
+      </div>
+      <div class="telemetry-row">
+        <span>Temperature</span>
+        <span class="telemetry-val" id="val-temp">-- °C</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Three.js 3D Setup */
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0e17);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(4, 3, 5);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight - 56);
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
+
+    // Grid Floor
+    const grid = new THREE.GridHelper(20, 20, 0x38bdf8, 0x1e293b);
+    grid.position.y = -1.2;
+    scene.add(grid);
+
+    // 3D AMR Robot Model
+    const robotGroup = new THREE.Group();
+
+    // Chassis body
+    const bodyGeo = new THREE.BoxGeometry(2.4, 0.5, 1.6);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.7 });
+    const chassis = new THREE.Mesh(bodyGeo, bodyMat);
+    robotGroup.add(chassis);
+
+    // Front Lid / Top Deck
+    const topGeo = new THREE.BoxGeometry(2.0, 0.1, 1.4);
+    const topMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 });
+    const topDeck = new THREE.Mesh(topGeo, topMat);
+    topDeck.position.y = 0.3;
+    robotGroup.add(topDeck);
+
+    // LiDAR Puck on top
+    const lidarGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.3, 24);
+    const lidarMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
+    const lidar = new THREE.Mesh(lidarGeo, lidarMat);
+    lidar.position.set(0.5, 0.5, 0);
+    robotGroup.add(lidar);
+
+    // Direction arrow (Front marker)
+    const arrowGeo = new THREE.ConeGeometry(0.2, 0.5, 16);
+    const arrowMat = new THREE.MeshStandardMaterial({ color: 0x22c55e });
+    const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+    arrow.rotation.z = -Math.PI / 2;
+    arrow.position.set(1.4, 0.1, 0);
+    robotGroup.add(arrow);
+
+    // Differential Drive Wheels
+    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 24);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+    const wheelL = new THREE.Mesh(wheelGeo, wheelMat);
+    wheelL.rotation.x = Math.PI / 2;
+    wheelL.position.set(0, -0.2, 0.9);
+    robotGroup.add(wheelL);
+
+    const wheelR = new THREE.Mesh(wheelGeo, wheelMat);
+    wheelR.rotation.x = Math.PI / 2;
+    wheelR.position.set(0, -0.2, -0.9);
+    robotGroup.add(wheelR);
+
+    scene.add(robotGroup);
+
+    // Animation Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / (window.innerHeight - 56);
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight - 56);
+    });
+
+    /* Telemetry Parsing & Protocol Logic */
+    let packetCount = 0;
+    let lastSecPackets = 0;
+    let lastSecTime = performance.now();
+
+    function updateUI(data) {
+      packetCount++;
+      document.getElementById('val-pkts').textContent = packetCount;
+
+      const now = performance.now();
+      if (now - lastSecTime >= 1000) {
+        document.getElementById('val-rate').textContent = (packetCount - lastSecPackets) + ' Hz';
+        lastSecPackets = packetCount;
+        lastSecTime = now;
+      }
+
+      // Euler Angles
+      document.getElementById('val-roll').textContent = data.roll.toFixed(1) + '°';
+      document.getElementById('val-pitch').textContent = data.pitch.toFixed(1) + '°';
+      document.getElementById('val-yaw').textContent = data.yaw.toFixed(1) + '°';
+
+      // Accel & Gyro
+      document.getElementById('val-accel').textContent = `[${data.ax.toFixed(2)}, ${data.ay.toFixed(2)}, ${data.az.toFixed(2)}]`;
+      document.getElementById('val-gyro').textContent = `[${data.gx.toFixed(1)}, ${data.gy.toFixed(1)}, ${data.gz.toFixed(1)}]`;
+      document.getElementById('val-temp').textContent = data.temp + ' °C';
+
+      // Calibration status
+      const updateCal = (id, val) => {
+        const el = document.getElementById(id);
+        el.textContent = val + '/3';
+        el.className = 'calib-val cal-' + val;
+      };
+      updateCal('cal-sys', data.calSys);
+      updateCal('cal-gyro', data.calGyro);
+      updateCal('cal-acc', data.calAcc);
+      updateCal('cal-mag', data.calMag);
+
+      // Apply Quaternion to 3D Robot model (Three.js format: x, y, z, w)
+      // Note coordinate transformation from BNO055 body frame to Three.js world frame
+      const q = new THREE.Quaternion(data.qx, data.qz, -data.qy, data.qw);
+      robotGroup.quaternion.copy(q);
+    }
+
+    /* CRC16-CCITT implementation */
+    function checkCRC16(buffer) {
+      let crc = 0xFFFF;
+      for (let i = 0; i < 34; i++) {
+        crc ^= (buffer[i] << 8);
+        for (let b = 0; b < 8; b++) {
+          if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+          else crc = (crc << 1) & 0xFFFF;
+        }
+      }
+      const rxCRC = (buffer[35] << 8) | buffer[34];
+      return crc === rxCRC;
+    }
+
+    function parseFrame(bytes) {
+      const view = new DataView(bytes.buffer, bytes.byteOffset, 36);
+      if (bytes[0] !== 0x55 || bytes[1] !== 0xAA) return null;
+      if (!checkCRC16(bytes)) return null;
+
+      const SCALE_Q = 1.0 / (1 << 14);
+      const cal = view.getUint8(32);
+
+      return {
+        timestamp: view.getUint32(2, true),
+        qw: view.getInt16(6, true) * SCALE_Q,
+        qx: view.getInt16(8, true) * SCALE_Q,
+        qy: view.getInt16(10, true) * SCALE_Q,
+        qz: view.getInt16(12, true) * SCALE_Q,
+        ax: view.getInt16(14, true) / 100.0,
+        ay: view.getInt16(16, true) / 100.0,
+        az: view.getInt16(18, true) / 100.0,
+        gx: view.getInt16(20, true) / 16.0,
+        gy: view.getInt16(22, true) / 16.0,
+        gz: view.getInt16(24, true) / 16.0,
+        yaw: view.getInt16(26, true) / 16.0,
+        roll: view.getInt16(28, true) / 16.0,
+        pitch: view.getInt16(30, true) / 16.0,
+        calSys: (cal >> 6) & 0x03,
+        calGyro: (cal >> 4) & 0x03,
+        calAcc: (cal >> 2) & 0x03,
+        calMag: cal & 0x03,
+        temp: view.getInt8(33)
+      };
+    }
+
+    /* Web Serial API Connection */
+    let serialPort = null;
+    let reader = null;
+    let rxBuffer = [];
+
+    document.getElementById('btn-serial').addEventListener('click', async () => {
+      if (!('serial' in navigator)) {
+        alert('Web Serial API is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
+        return;
+      }
+
+      try {
+        serialPort = await navigator.serial.requestPort();
+        await serialPort.open({ baudRate: 115200 });
+
+        document.getElementById('status-dot').className = 'status-dot dot-connected';
+        document.getElementById('status-text').textContent = 'Connected (115200)';
+        document.getElementById('btn-serial').textContent = 'Disconnect';
+
+        reader = serialPort.readable.getReader();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          for (let i = 0; i < value.length; i++) {
+            rxBuffer.push(value[i]);
+          }
+
+          while (rxBuffer.length >= 2 && (rxBuffer[0] !== 0x55 || rxBuffer[1] !== 0xAA)) {
+            rxBuffer.shift();
+          }
+
+          if (rxBuffer.length >= 36) {
+            const frame = new Uint8Array(rxBuffer.slice(0, 36));
+            rxBuffer = rxBuffer.slice(36);
+            const data = parseFrame(frame);
+            if (data) updateUI(data);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    /* Virtual Demo Simulation */
+    let simActive = false;
+    let simInterval = null;
+    let simAngle = 0;
+
+    document.getElementById('btn-sim').addEventListener('click', () => {
+      simActive = !simActive;
+      const btn = document.getElementById('btn-sim');
+      if (simActive) {
+        btn.classList.add('btn-active');
+        btn.textContent = 'Stop Demo';
+        document.getElementById('status-dot').className = 'status-dot dot-sim';
+        document.getElementById('status-text').textContent = 'Virtual Simulator';
+
+        simInterval = setInterval(() => {
+          simAngle += 0.02;
+          const roll = Math.sin(simAngle) * 20;
+          const pitch = Math.cos(simAngle * 0.7) * 15;
+          const yaw = (simAngle * 30) % 360;
+
+          // Convert Euler to Quaternion
+          const e = new THREE.Euler(roll * Math.PI/180, yaw * Math.PI/180, pitch * Math.PI/180, 'YXZ');
+          const q = new THREE.Quaternion().setFromEuler(e);
+
+          updateUI({
+            roll: roll,
+            pitch: pitch,
+            yaw: yaw,
+            qw: q.w,
+            qx: q.x,
+            qy: q.y,
+            qz: q.z,
+            ax: Math.sin(simAngle) * 0.5,
+            ay: Math.cos(simAngle) * 0.3,
+            az: 9.81 + Math.sin(simAngle * 2) * 0.2,
+            gx: 2.5,
+            gy: -1.2,
+            gz: 5.0,
+            calSys: 3,
+            calGyro: 3,
+            calAcc: 3,
+            calMag: 3,
+            temp: 32
+          });
+        }, 10);
+      } else {
+        btn.classList.remove('btn-active');
+        btn.textContent = 'Virtual Demo';
+        clearInterval(simInterval);
+        document.getElementById('status-dot').className = 'status-dot';
+        document.getElementById('status-text').textContent = 'Disconnected';
+      }
+    });
+  </script>
+</body>
+</html>

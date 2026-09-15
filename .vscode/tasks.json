@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "env": {
+      "PATH": "C:/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.win32_1.0.100.202602081740/tools/bin;C:/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.ninja.win32_1.1.200.202606260906/tools/bin;C:/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_2.2.500.202603051304/tools/bin;C:/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.cmake.win32_1.1.200.202605190741/tools/bin;${env:PATH}"
+    }
+  },
+  "tasks": [
+    {
+      "label": "Configure STM32_IMU",
+      "type": "shell",
+      "command": "cmake -B ${workspaceFolder}/STM32_IMU/build -S ${workspaceFolder}/STM32_IMU -G Ninja --toolchain arm-none-eabi-toolchain.cmake",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build STM32_IMU",
+      "type": "shell",
+      "command": "cmake --build ${workspaceFolder}/STM32_IMU/build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Flash STM32_IMU (ST-Link)",
+      "type": "shell",
+      "command": "STM32_Programmer_CLI -c port=SWD mode=UR -w ${workspaceFolder}/STM32_IMU/build/STM32_IMU.elf -v -rst",
+      "dependsOn": [
+        "Build STM32_IMU"
+      ],
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean STM32_IMU",
+      "type": "shell",
+      "command": "cmake --build ${workspaceFolder}/STM32_IMU/build --target clean",
+      "group": "none",
+      "problemMatcher": []
+    }
+  ]
+}

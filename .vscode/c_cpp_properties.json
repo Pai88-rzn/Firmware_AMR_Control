@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "name": "STM32_IMU",
+      "includePath": [
+        "${workspaceFolder}/STM32_IMU/Core/Inc",
+        "${workspaceFolder}/STM32_IMU/Drivers/CMSIS/Core/Include",
+        "${workspaceFolder}/STM32_IMU/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
+        "${workspaceFolder}/STM32_IMU/Drivers/STM32F1xx_HAL_Driver/Inc",
+        "${workspaceFolder}/STM32_IMU/Drivers/BSP",
+        "${workspaceFolder}/STM32_IMU/App"
+      ],
+      "defines": [
+        "STM32F103xB",
+        "USE_HAL_DRIVER",
+        "HSE_VALUE=8000000U"
+      ],
+      "compilerPath": "C:/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.win32_1.0.100.202602081740/tools/bin/arm-none-eabi-gcc.exe",
+      "cStandard": "c11",
+      "intelliSenseMode": "gcc-arm"
+    }
+  ],
+  "version": 4
+}

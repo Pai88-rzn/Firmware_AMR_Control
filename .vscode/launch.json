@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug STM32_IMU (ST-LINK)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "stlink",
+      "cwd": "${workspaceFolder}/STM32_IMU",
+      "executable": "${workspaceFolder}/STM32_IMU/build/STM32_IMU.elf",
+      "device": "STM32F103C8",
+      "interface": "swd",
+      "runToEntryPoint": "main",
+      "preLaunchTask": "Build STM32_IMU"
+    },
+    {
+      "name": "Debug STM32_IMU (OpenOCD)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}/STM32_IMU",
+      "executable": "${workspaceFolder}/STM32_IMU/build/STM32_IMU.elf",
+      "device": "STM32F103C8",
+      "configFiles": [
+        "interface/stlink.cfg",
+        "target/stm32f1x.cfg"
+      ],
+      "runToEntryPoint": "main",
+      "preLaunchTask": "Build STM32_IMU"
+    }
+  ]
+}

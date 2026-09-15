@@ -1,0 +1,55 @@
+# LAPORAN PROGRESS PENGEMBANGAN PROYEK AMR
+### General Purpose AMR Platform (AMR_GPRP)
+
+**Project:** AMR_GPRP  
+**PIC:** Muhamad Rifai  
+**Tanggal Pelaporan:** 09 September 2026  
+**Status Ringkasan:** Aktif / On-Track (Catatan Khusus: Isaac Sim)  
+
+
+## 1. Hardware & Elektronika (PCB)
+
+### PCB Assembly : [ON PROGRESS]
+* **Status:** Sedang Berlangsung
+* **Keterangan:** Proses perakitan komponen SMD/THT pada PCB board (Bridge Board & IMU Board).
+
+### PCB Testing : [WAITING]
+* **Status:** Menunggu
+* **Keterangan:** Menunggu perakitan PCB selesai untuk pengujian jalur daya (power rail check), flashing awal, serta validasi fungsionalitas I/O dan sensor.
+
+
+## 2. Firmware & Embedded System
+
+### Firmware STM32 Bridge : [ON PROGRESS]
+* **Target MCU:** STM32F411CEU6
+* **Status:** Sedang Berjalan
+* **Keterangan:** Pengembangan logika I/O, integrasi FreeRTOS, handling sensor (Ultrasonic, LiDAR), dan protokol komunikasi ke Host PC.
+
+### Firmware STM32 IMU : [DONE COMPILE]
+* **Target MCU:** STM32F103C8T6 + Bosch BNO055
+* **Status:** Selesai Kompilasi (0 Errors)
+* **Next Action:** Perlu testing/flashing ke modul hardware fisik serta verifikasi akuisisi data via serial/micro-ROS.
+
+
+## 3. Simulasi & Software (Digital Twin)
+
+### Simulasi Isaac Sim : [TROUBLESHOOTING / FORCE CLOSE]
+* **Lokasi Environment:** Komputer AI3
+* **Kendala:** Belum dapat diakses / mengalami force close saat launch.
+* **Status Investigasi:** Masih dicari masalahnya (analisis log crash, kompatibilitas driver GPU NVIDIA, dependensi Vulkan, dan versi Omniverse).
+
+
+## 4. Mekanikal (Chassis & Drivetrain)
+
+### Mechanical Robot : [WAITING PRODUCTION]
+* **Status:** Menunggu Antrean Fabrikasi
+* **Keterangan:** Menunggu jadwal masuk proses manufaktur dan perakitan fisik chassis AMR.
+
+
+## Rencana Tindak Lanjut (Next Action)
+
+1. **[Prioritas Tinggi] Troubleshooting Isaac Sim:** Mengidentifikasi dan menyelesaikan penyebab crash/force close pada komputer AI3.
+2. **[Prioritas Sedang] Selesaikan PCB Assembly:** Melanjutkan dan menuntaskan perakitan modul PCB Bridge dan IMU.
+3. **[Prioritas Sedang] PCB Testing & IMU Bringup:** Pengujian daya PCB dan flashing/testing firmware STM32 IMU pada hardware aktual.
+4. **[Prioritas Sedang] Pengembangan STM32 Bridge:** Melanjutkan implementasi modul sensor dan inter-task FreeRTOS.
+5. **[Monitoring] Produksi Mekanikal:** Memantau jadwal dan antrean fabrikasi chassis robot.
