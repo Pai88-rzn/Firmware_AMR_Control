@@ -38,26 +38,11 @@ static void vSafetyTask(void *pvParameters)
   (void)pvParameters;
   TickType_t xLastWakeTime = xTaskGetTickCount();
   const TickType_t xFrequency = pdMS_TO_TICKS(10);
-  uint32_t telemetry_counter = 0;
 
   for (;;)
   {
     /* Hard real-time safety evaluation */
     SafetyMonitor_Step(&hi2c3);
-
-    /* Periodically (every 50ms / 20 Hz) publish safety input & state telemetry */
-    telemetry_counter++;
-    if (telemetry_counter >= 5)
-    {
-      telemetry_counter = 0;
-      TelemetryMsg_t msg;
-      msg.type = TELEMETRY_SAFETY_STATUS;
-      msg.status_byte = SafetyMonitor_GetRawInputs();
-      msg.range_m = (float)SafetyMonitor_GetState();
-      msg.timestamp_ms = HAL_GetTick();
-
-      xQueueSend(xTelemetryQueue, &msg, 0);
-    }
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
@@ -85,6 +70,33 @@ static void vMicroRosTask(void *pvParameters)
 }
 
 /**
+  * @brief  Recover I2C peripheral on fatal bus hardware errors (BERR, ARLO, TIMEOUT)
+  *         or stuck BUSY state. Benign NACKs (AF) from absent sensor are cleared.
+  */
+static void I2C_RecoverIfNeeded(I2C_HandleTypeDef *hi2c)
+{
+  if (!hi2c) return;
+
+  if (hi2c->ErrorCode != HAL_I2C_ERROR_NONE && hi2c->ErrorCode != HAL_I2C_ERROR_AF)
+  {
+    if (hi2c->Instance == I2C1) {
+      __HAL_RCC_I2C1_FORCE_RESET();
+      __HAL_RCC_I2C1_RELEASE_RESET();
+    } else if (hi2c->Instance == I2C2) {
+      __HAL_RCC_I2C2_FORCE_RESET();
+      __HAL_RCC_I2C2_RELEASE_RESET();
+    }
+    __HAL_I2C_RESET_HANDLE_STATE(hi2c);
+    HAL_I2C_DeInit(hi2c);
+    HAL_I2C_Init(hi2c);
+  }
+  else
+  {
+    hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
+  }
+}
+
+/**
   * @brief  Single-Point ToF LiDAR Task (50 Hz / 20ms cycle)
   *         Samples Rear-Left (0x10) and Rear-Right (0x11) TFmini-S for AMR auto-docking.
   */
@@ -92,43 +104,44 @@ static void vLidarTask(void *pvParameters)
 {
   (void)pvParameters;
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  const TickType_t xFrequency = pdMS_TO_TICKS(20);
+  const TickType_t xFrequency = pdMS_TO_TICKS(50); /* 20 Hz sample cycle */
 
   TFminiS_Data_t lidar_data;
 
   for (;;)
   {
     /* 1. Sample Rear-Left LiDAR (0x10) */
-    if (TFminiS_ReadData(&hi2c2, TFMINI_S_ADDR_REAR_LEFT, &lidar_data) == HAL_OK && lidar_data.valid)
+    TelemetryMsg_t msg_rl;
+    msg_rl.type = TELEMETRY_LIDAR_REAR_LEFT;
+    msg_rl.timestamp_ms = HAL_GetTick();
+    if (TFminiS_ReadData(&hi2c2, TFMINI_S_ADDR_REAR_LEFT, &lidar_data) == HAL_OK)
     {
-      TelemetryMsg_t msg;
-      msg.type = TELEMETRY_LIDAR_REAR_LEFT;
-      msg.range_m = lidar_data.distance_m;
-      msg.status_byte = (uint8_t)(lidar_data.strength > 100 ? 0 : 1);
-      msg.timestamp_ms = HAL_GetTick();
-
-      xQueueSend(xTelemetryQueue, &msg, 0);
+      msg_rl.range_cm = (float)lidar_data.distance_cm;
+      msg_rl.status_byte = (uint8_t)(lidar_data.valid ? 0 : 1);
+      xQueueSend(xTelemetryQueue, &msg_rl, 0);
     }
+    I2C_RecoverIfNeeded(&hi2c2);
 
     /* 2. Sample Rear-Right LiDAR (0x11) */
-    if (TFminiS_ReadData(&hi2c2, TFMINI_S_ADDR_REAR_RIGHT, &lidar_data) == HAL_OK && lidar_data.valid)
+    TelemetryMsg_t msg_rr;
+    msg_rr.type = TELEMETRY_LIDAR_REAR_RIGHT;
+    msg_rr.timestamp_ms = HAL_GetTick();
+    if (TFminiS_ReadData(&hi2c2, TFMINI_S_ADDR_REAR_RIGHT, &lidar_data) == HAL_OK)
     {
-      TelemetryMsg_t msg;
-      msg.type = TELEMETRY_LIDAR_REAR_RIGHT;
-      msg.range_m = lidar_data.distance_m;
-      msg.status_byte = (uint8_t)(lidar_data.strength > 100 ? 0 : 1);
-      msg.timestamp_ms = HAL_GetTick();
-
-      xQueueSend(xTelemetryQueue, &msg, 0);
+      msg_rr.range_cm = (float)lidar_data.distance_cm;
+      msg_rr.status_byte = (uint8_t)(lidar_data.valid ? 0 : 1);
+      xQueueSend(xTelemetryQueue, &msg_rr, 0);
     }
+    I2C_RecoverIfNeeded(&hi2c2);
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
   }
 }
 
 /**
-  * @brief  DYP-A22 Ultrasonic Task (~20 Hz / 50ms cycle)
+  * @brief  DYP-A22 Ultrasonic Task (~10 Hz / 100ms cycle)
   *         Samples Left (0x74) and Right (0x75) sonar sensors.
+  *         Uses 65ms acoustic transit wait + internal driver retry loop.
   */
 static void vUltrasonicTask(void *pvParameters)
 {
@@ -137,38 +150,45 @@ static void vUltrasonicTask(void *pvParameters)
 
   for (;;)
   {
-    /* 1. Trigger ranging simultaneously on both sensors */
+    /* 1. Trigger Left Sonar */
     DYP_A22_Trigger(&hi2c1, DYP_A22_ADDR_LEFT);
+    I2C_RecoverIfNeeded(&hi2c1);
+    vTaskDelay(pdMS_TO_TICKS(5));
+
+    /* 2. Trigger Right Sonar */
     DYP_A22_Trigger(&hi2c1, DYP_A22_ADDR_RIGHT);
+    I2C_RecoverIfNeeded(&hi2c1);
 
-    /* 2. Wait for acoustic echo measurement to complete (typical 30-40 ms) */
-    vTaskDelay(pdMS_TO_TICKS(40));
+    /* 3. Wait for acoustic echo measurement (typical 65 ms) */
+    vTaskDelay(pdMS_TO_TICKS(65));
 
-    /* 3. Read Left Ultrasonic Distance */
+    /* 4. Read Left Ultrasonic Distance */
+    TelemetryMsg_t msg_sl;
+    msg_sl.type = TELEMETRY_SONAR_LEFT;
+    msg_sl.timestamp_ms = HAL_GetTick();
     if (DYP_A22_ReadDistance(&hi2c1, DYP_A22_ADDR_LEFT, &sonar_data) == HAL_OK && sonar_data.valid)
     {
-      TelemetryMsg_t msg;
-      msg.type = TELEMETRY_SONAR_LEFT;
-      msg.range_m = sonar_data.distance_m;
-      msg.status_byte = 0;
-      msg.timestamp_ms = HAL_GetTick();
-
-      xQueueSend(xTelemetryQueue, &msg, 0);
+      msg_sl.range_cm = sonar_data.distance_cm;
+      msg_sl.status_byte = 0;
+      xQueueSend(xTelemetryQueue, &msg_sl, 0);
     }
+    I2C_RecoverIfNeeded(&hi2c1);
+    vTaskDelay(pdMS_TO_TICKS(5));
 
-    /* 4. Read Right Ultrasonic Distance */
+    /* 5. Read Right Ultrasonic Distance */
+    TelemetryMsg_t msg_sr;
+    msg_sr.type = TELEMETRY_SONAR_RIGHT;
+    msg_sr.timestamp_ms = HAL_GetTick();
     if (DYP_A22_ReadDistance(&hi2c1, DYP_A22_ADDR_RIGHT, &sonar_data) == HAL_OK && sonar_data.valid)
     {
-      TelemetryMsg_t msg;
-      msg.type = TELEMETRY_SONAR_RIGHT;
-      msg.range_m = sonar_data.distance_m;
-      msg.status_byte = 0;
-      msg.timestamp_ms = HAL_GetTick();
-
-      xQueueSend(xTelemetryQueue, &msg, 0);
+      msg_sr.range_cm = sonar_data.distance_cm;
+      msg_sr.status_byte = 0;
+      xQueueSend(xTelemetryQueue, &msg_sr, 0);
     }
+    I2C_RecoverIfNeeded(&hi2c1);
 
-    vTaskDelay(pdMS_TO_TICKS(10));
+    /* 10 Hz cycle padding */
+    vTaskDelay(pdMS_TO_TICKS(25));
   }
 }
 

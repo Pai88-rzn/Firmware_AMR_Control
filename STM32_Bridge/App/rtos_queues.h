@@ -27,7 +27,7 @@ typedef enum {
 
 typedef struct {
   TelemetryType_t type;
-  float           range_m;
+  float           range_cm;
   uint8_t         status_byte;
   uint32_t        timestamp_ms;
 } TelemetryMsg_t;

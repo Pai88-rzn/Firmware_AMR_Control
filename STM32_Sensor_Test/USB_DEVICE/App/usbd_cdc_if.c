@@ -1,12 +1,11 @@
 /**
   ******************************************************************************
   * @file           : usbd_cdc_if.c
-  * @brief          : Usb CDC interface for micro-ROS on STM32F411
+  * @brief          : Usb CDC interface for STM32_Sensor_Test
   ******************************************************************************
   */
 
 #include "usbd_cdc_if.h"
-#include "custom_transport.h"
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
@@ -50,24 +49,18 @@ static int8_t CDC_DeInit_FS(void)
 
 static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
-  UNUSED(length);
   switch(cmd)
   {
     case CDC_SEND_ENCAPSULATED_COMMAND:
       break;
-
     case CDC_GET_ENCAPSULATED_RESPONSE:
       break;
-
     case CDC_SET_COMM_FEATURE:
       break;
-
     case CDC_GET_COMM_FEATURE:
       break;
-
     case CDC_CLEAR_COMM_FEATURE:
       break;
-
     case CDC_SET_LINE_CODING:
       LineCoding.bitrate    = (uint32_t)(pbuf[0] | (pbuf[1] << 8) |\
                               (pbuf[2] << 16) | (pbuf[3] << 24));
@@ -75,7 +68,6 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
       LineCoding.paritytype = pbuf[5];
       LineCoding.datatype   = pbuf[6];
       break;
-
     case CDC_GET_LINE_CODING:
       pbuf[0] = (uint8_t)(LineCoding.bitrate);
       pbuf[1] = (uint8_t)(LineCoding.bitrate >> 8);
@@ -85,13 +77,10 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
       pbuf[5] = LineCoding.paritytype;
       pbuf[6] = LineCoding.datatype;
       break;
-
     case CDC_SET_CONTROL_LINE_STATE:
       break;
-
     case CDC_SEND_BREAK:
       break;
-
     default:
       break;
   }
@@ -100,12 +89,8 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
-  /* Forward received bytes to micro-ROS custom transport ring buffer */
-  if (Buf && Len && *Len > 0)
-  {
-    custom_transport_rx_push_buffer(Buf, *Len);
-  }
-
+  (void)Buf;
+  (void)Len;
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &UserRxBufferFS[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);

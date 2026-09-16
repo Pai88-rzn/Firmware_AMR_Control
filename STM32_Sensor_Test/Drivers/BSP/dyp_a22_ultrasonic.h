@@ -40,7 +40,6 @@ extern "C" {
 
 typedef struct {
   float    distance_m;
-  float    distance_cm;
   uint16_t raw_mm;
   bool     valid;
 } DYP_A22_Data_t;

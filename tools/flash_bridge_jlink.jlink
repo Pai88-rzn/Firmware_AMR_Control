@@ -1,0 +1,6 @@
+r
+h
+loadfile /home/rifai/Firmware_AMR_Control/STM32_Bridge/build/STM32_Bridge.hex
+r
+g
+q

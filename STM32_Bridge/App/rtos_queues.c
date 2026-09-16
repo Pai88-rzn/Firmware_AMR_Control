@@ -13,7 +13,7 @@ QueueHandle_t xEmergencyQueue = NULL;
 
 bool RTOS_Queues_Init(void)
 {
-  xTelemetryQueue = xQueueCreate(16, sizeof(TelemetryMsg_t));
+  xTelemetryQueue = xQueueCreate(32, sizeof(TelemetryMsg_t));
   xRelayCmdQueue  = xQueueCreate(8,  sizeof(RelayCmd_t));
   xEmergencyQueue = xQueueCreate(4,  sizeof(EmergencyEvent_t));
 

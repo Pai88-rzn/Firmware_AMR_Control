@@ -97,13 +97,14 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
+  * @brief System Clock Configuration for STM32F401CC
   *        HSE = 25 MHz
   *        PLL_M = 25 -> 1 MHz VCO in
-  *        PLL_N = 192 -> 192 MHz VCO
-  *        PLL_P = RCC_PLLP_DIV2 -> SYSCLK = 96 MHz
-  *        PLL_Q = 4 -> 48 MHz USB OTG FS Clock
-  *        HCLK = 96 MHz, PCLK1 = 48 MHz, PCLK2 = 96 MHz
+  *        PLL_N = 336 -> 336 MHz VCO
+  *        PLL_P = RCC_PLLP_DIV4 -> SYSCLK = 84 MHz (Max specification for F401)
+  *        PLL_Q = 7 -> 48 MHz USB OTG FS Clock (336 / 7 = 48 MHz exact)
+  *        HCLK = 84 MHz, PCLK1 = 42 MHz (Max 42 MHz), PCLK2 = 84 MHz (Max 84 MHz)
+  *        FLASH_LATENCY_2 for 84 MHz @ 3.3V
   */
 void SystemClock_Config(void)
 {
@@ -112,7 +113,7 @@ void SystemClock_Config(void)
 
   /* Configure the main internal regulator output voltage */
   __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
   /* Initializes the RCC Oscillators according to the specified parameters */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
@@ -120,9 +121,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 25;
-  RCC_OscInitStruct.PLL.PLLN = 192;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -136,7 +137,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -261,7 +262,7 @@ static void MX_I2C2_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   hi2c2.Instance = I2C2;
-  hi2c2.Init.ClockSpeed = 400000;
+  hi2c2.Init.ClockSpeed = 100000;
   hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;

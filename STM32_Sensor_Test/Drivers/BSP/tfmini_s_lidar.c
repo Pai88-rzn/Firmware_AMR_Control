@@ -9,27 +9,6 @@
 #include "tfmini_s_lidar.h"
 #include <string.h>
 
-#if __has_include("FreeRTOS.h")
-#include "FreeRTOS.h"
-#include "task.h"
-#endif
-
-static inline void TFminiS_DelayMs(uint32_t ms)
-{
-#if __has_include("FreeRTOS.h")
-  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
-  {
-    vTaskDelay(pdMS_TO_TICKS(ms));
-  }
-  else
-  {
-    HAL_Delay(ms);
-  }
-#else
-  HAL_Delay(ms);
-#endif
-}
-
 /* Standard Benewake Commands */
 static const uint8_t CMD_OBTAIN_DATA_CM[5] = { 0x5A, 0x05, 0x00, 0x01, 0x60 };
 static const uint8_t CMD_SET_I2C[5]        = { 0x5A, 0x05, 0x0A, 0x01, 0x6A };
@@ -291,7 +270,7 @@ HAL_StatusTypeDef TFminiS_ReadData(I2C_HandleTypeDef *hi2c, uint8_t i2c_addr, TF
 
   /* Inter-frame processing delay: Benewake TFmini-S MCU needs ~2-3 ms
    * to compute distance and prepare output buffer for I2C master. */
-  TFminiS_DelayMs(3);
+  HAL_Delay(3);
 
   /* Step 2: Read response */
   return TFminiS_ReceiveFrame(hi2c, i2c_addr, out_data);

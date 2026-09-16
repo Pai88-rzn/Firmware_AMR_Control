@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(STM32_Bridge C ASM)
+project(STM32_Sensor_Test C ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -18,10 +18,10 @@ set(CPU_FLAGS "-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CPU_FLAGS} -Wall -Wextra -fdata-sections -ffunction-sections -Os")
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} ${CPU_FLAGS} -x assembler-with-cpp")
 
-# Linker flags
+# Linker flags (including -u _printf_float for newlib-nano float printf support)
 set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/STM32F401CCUx_FLASH.ld")
 set(CMAKE_EXE_LINKER_FLAGS
-    "${CPU_FLAGS} -T\"${LINKER_SCRIPT}\" -Wl,-Map=${PROJECT_NAME}.map,--cref -Wl,--gc-sections -specs=nano.specs -lc -lm -Wl,--no-warn-rwx-segments"
+    "${CPU_FLAGS} -T\"${LINKER_SCRIPT}\" -Wl,-Map=${PROJECT_NAME}.map,--cref -Wl,--gc-sections -specs=nano.specs -u _printf_float -lc -lm -Wl,--no-warn-rwx-segments"
 )
 
 # Include directories
@@ -32,21 +32,14 @@ include_directories(
     Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
     Drivers/CMSIS/Device/ST/STM32F4xx/Include
     Drivers/CMSIS/Include
-    Middlewares/Third_Party/FreeRTOS/include
-    Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM4F
     Middlewares/ST/STM32_USB_Device_Library/Core/Inc
     Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
     USB_DEVICE/App
     USB_DEVICE/Target
-    App
-    Middlewares/micro_ros_stm32
-    Middlewares/micro_ros_stm32/include
 )
 
-# Source files
-set(SOURCES
-    # Core System & Startup
-    Core/Src/main.c
+# Common shared files
+set(COMMON_SOURCES
     Core/Src/stm32f4xx_it.c
     Core/Src/system_stm32f4xx.c
     Core/Src/syscalls.c
@@ -54,28 +47,6 @@ set(SOURCES
 
     # Drivers BSP
     Drivers/BSP/onboard_leds.c
-    Drivers/BSP/pcf8574.c
-    Drivers/BSP/tfmini_s_lidar.c
-    Drivers/BSP/dyp_a22_ultrasonic.c
-    Drivers/BSP/lora_module.c
-
-    # Application Layer
-    App/rtos_queues.c
-    App/rtos_tasks.c
-    App/safety_monitor.c
-    App/io_controller.c
-    App/microros_interface.c
-
-    # FreeRTOS Kernel
-    Middlewares/Third_Party/FreeRTOS/croutine.c
-    Middlewares/Third_Party/FreeRTOS/event_groups.c
-    Middlewares/Third_Party/FreeRTOS/list.c
-    Middlewares/Third_Party/FreeRTOS/queue.c
-    Middlewares/Third_Party/FreeRTOS/stream_buffer.c
-    Middlewares/Third_Party/FreeRTOS/tasks.c
-    Middlewares/Third_Party/FreeRTOS/timers.c
-    Middlewares/Third_Party/FreeRTOS/portable/MemMang/heap_4.c
-    Middlewares/Third_Party/FreeRTOS/portable/GCC/ARM_CM4F/port.c
 
     # USB Device Stack
     USB_DEVICE/App/usb_device.c
@@ -86,9 +57,6 @@ set(SOURCES
     Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
     Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
     Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
-
-    # micro-ROS Middleware & Transport
-    Middlewares/micro_ros_stm32/custom_transport.c
 
     # STM32F4xx HAL Drivers
     Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
@@ -110,17 +78,38 @@ set(SOURCES
     Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
 )
 
-add_executable(${PROJECT_NAME}.elf ${SOURCES})
-
-# Link precompiled micro-ROS static library for Cortex-M4F
-target_link_libraries(${PROJECT_NAME}.elf PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/micro_ros_stm32/libmicroros.a
+# ----------------------------------------------------
+# TARGET 1: STM32_Sensor_Test (Main Sensor Diagnostics)
+# ----------------------------------------------------
+set(SENSOR_TEST_SOURCES
+    Core/Src/main.c
+    Drivers/BSP/tfmini_s_lidar.c
+    Drivers/BSP/dyp_a22_ultrasonic.c
+    ${COMMON_SOURCES}
 )
 
-# Post-build: Generate .hex, .bin, and print memory footprint
-add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.hex
-    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.bin
-    COMMAND ${CMAKE_SIZE_UTIL} --format=berkeley $<TARGET_FILE:${PROJECT_NAME}.elf>
-    COMMENT "Building ${PROJECT_NAME}.hex and ${PROJECT_NAME}.bin and reporting memory size..."
+add_executable(STM32_Sensor_Test.elf ${SENSOR_TEST_SOURCES})
+
+add_custom_command(TARGET STM32_Sensor_Test.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:STM32_Sensor_Test.elf> STM32_Sensor_Test.hex
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:STM32_Sensor_Test.elf> STM32_Sensor_Test.bin
+    COMMAND ${CMAKE_SIZE_UTIL} --format=berkeley $<TARGET_FILE:STM32_Sensor_Test.elf>
+)
+
+# ----------------------------------------------------
+# TARGET 2: TFmini_I2C_Converter (One-shot Mode Changer)
+# ----------------------------------------------------
+set(CONVERTER_SOURCES
+    Core/Src/main_converter.c
+    Drivers/BSP/tfmini_s_lidar.c
+    Drivers/BSP/dyp_a22_ultrasonic.c
+    ${COMMON_SOURCES}
+)
+
+add_executable(TFmini_I2C_Converter.elf ${CONVERTER_SOURCES})
+
+add_custom_command(TARGET TFmini_I2C_Converter.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:TFmini_I2C_Converter.elf> TFmini_I2C_Converter.hex
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:TFmini_I2C_Converter.elf> TFmini_I2C_Converter.bin
+    COMMAND ${CMAKE_SIZE_UTIL} --format=berkeley $<TARGET_FILE:TFmini_I2C_Converter.elf>
 )

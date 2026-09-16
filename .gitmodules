@@ -1,0 +1,12 @@
+[submodule "STM32_Bridge/Drivers/CMSIS/Device/ST/STM32F4xx"]
+	path = STM32_Bridge/Drivers/CMSIS/Device/ST/STM32F4xx
+	url = https://github.com/STMicroelectronics/cmsis_device_f4.git
+[submodule "STM32_Bridge/Drivers/STM32F4xx_HAL_Driver"]
+	path = STM32_Bridge/Drivers/STM32F4xx_HAL_Driver
+	url = https://github.com/STMicroelectronics/stm32f4xx_hal_driver.git
+[submodule "STM32_Bridge/Middlewares/ST/STM32_USB_Device_Library"]
+	path = STM32_Bridge/Middlewares/ST/STM32_USB_Device_Library
+	url = https://github.com/STMicroelectronics/stm32_mw_usb_device.git
+[submodule "STM32_Bridge/Middlewares/Third_Party/FreeRTOS"]
+	path = STM32_Bridge/Middlewares/Third_Party/FreeRTOS
+	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git

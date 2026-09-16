@@ -7,27 +7,6 @@
 
 #include "dyp_a22_ultrasonic.h"
 
-#if __has_include("FreeRTOS.h")
-#include "FreeRTOS.h"
-#include "task.h"
-#endif
-
-static inline void DYP_A22_DelayMs(uint32_t ms)
-{
-#if __has_include("FreeRTOS.h")
-  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
-  {
-    vTaskDelay(pdMS_TO_TICKS(ms));
-  }
-  else
-  {
-    HAL_Delay(ms);
-  }
-#else
-  HAL_Delay(ms);
-#endif
-}
-
 HAL_StatusTypeDef DYP_A22_Init(I2C_HandleTypeDef *hi2c, uint8_t i2c_addr)
 {
   if (!hi2c) return HAL_ERROR;
@@ -86,7 +65,6 @@ HAL_StatusTypeDef DYP_A22_ReadDistance(I2C_HandleTypeDef *hi2c, uint8_t i2c_addr
     if (raw_mm != 0xFFFF && raw_mm != 0x0000)
     {
       out_data->distance_m = (float)raw_mm * 0.001f;
-      out_data->distance_cm = (float)raw_mm * 0.1f;
       if (out_data->distance_m >= DYP_A22_MIN_RANGE_M &&
           out_data->distance_m <= DYP_A22_MAX_RANGE_M)
       {
@@ -98,7 +76,7 @@ HAL_StatusTypeDef DYP_A22_ReadDistance(I2C_HandleTypeDef *hi2c, uint8_t i2c_addr
     /* 0xFFFF indicates acoustic echo calculation is still in progress */
     if (raw_mm == 0xFFFF)
     {
-      DYP_A22_DelayMs(15);
+      HAL_Delay(15);
     }
     else
     {

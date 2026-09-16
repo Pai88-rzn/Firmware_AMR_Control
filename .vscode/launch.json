@@ -27,6 +27,45 @@
       ],
       "runToEntryPoint": "main",
       "preLaunchTask": "Build STM32_IMU"
+    },
+    {
+      "name": "Debug STM32_Bridge (ST-LINK)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "stlink",
+      "cwd": "${workspaceFolder}/STM32_Bridge",
+      "executable": "${workspaceFolder}/STM32_Bridge/build/STM32_Bridge.elf",
+      "device": "STM32F401CC",
+      "interface": "swd",
+      "runToEntryPoint": "main",
+      "preLaunchTask": "Build STM32_Bridge"
+    },
+    {
+      "name": "Debug STM32_Bridge (OpenOCD)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}/STM32_Bridge",
+      "executable": "${workspaceFolder}/STM32_Bridge/build/STM32_Bridge.elf",
+      "device": "STM32F401CC",
+      "configFiles": [
+        "interface/stlink.cfg",
+        "target/stm32f4x.cfg"
+      ],
+      "runToEntryPoint": "main",
+      "preLaunchTask": "Build STM32_Bridge"
+    },
+    {
+      "name": "Debug STM32_Bridge (J-Link)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "jlink",
+      "cwd": "${workspaceFolder}/STM32_Bridge",
+      "executable": "${workspaceFolder}/STM32_Bridge/build/STM32_Bridge.elf",
+      "device": "STM32F401CC",
+      "interface": "swd",
+      "runToEntryPoint": "main",
+      "preLaunchTask": "Build STM32_Bridge"
     }
   ]
 }

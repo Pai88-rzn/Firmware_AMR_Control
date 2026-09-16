@@ -64,7 +64,18 @@ size_t custom_transport_write(struct uxrCustomTransport* transport, const uint8_
     return 0;
   }
 
-  uint8_t result = CDC_Transmit_FS((uint8_t *)buf, (uint16_t)len);
+  uint32_t start_tick = HAL_GetTick();
+  uint8_t result = 1; /* USBD_BUSY */
+
+  while ((HAL_GetTick() - start_tick) < 100)
+  {
+    result = CDC_Transmit_FS((uint8_t *)buf, (uint16_t)len);
+    if (result == 0) /* USBD_OK */
+    {
+      break;
+    }
+  }
+
   if (result == 0) /* USBD_OK */
   {
     if (err) *err = 0;
