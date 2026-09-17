@@ -10,7 +10,7 @@ if [ ! -f "$ELF_FILE" ]; then
 fi
 
 echo "Flashing STM32_Bridge via ST-Link V2 (OpenOCD)..."
-openocd -s "$OPENOCD_SCRIPTS" \
+/home/rifai/.local/bin/openocd -s "$OPENOCD_SCRIPTS" \
   -f interface/stlink.cfg \
   -f target/stm32f4x.cfg \
   -c "adapter speed 2000" \

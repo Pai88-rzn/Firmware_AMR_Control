@@ -498,7 +498,7 @@ When implementing, modifying, or testing code in this workspace, all AI agents a
 - [x] **IMU**: BNO055 register driver with external 32.768 kHz crystal initialization.
 - [x] **IMU**: 40-byte atomic burst reading (`0x0E` to `0x35`) & 22-byte calibration profile persistence.
 - [x] **IMU**: Hardware axis remapping & sign inversion (REP-103 alignment).
-- [ ] **Bridge**: PCF8574 I2C3 driver supporting dual addresses (`0x20` Output Relay, `0x21` Input Bumper).
+- [x] **Bridge**: PCF8574 dual-bus driver supporting dual addresses (0x20 Output Relay, 0x21 Input Bumper on I2C3 PCB, and 0x24 Dual-Bus I2C1/I2C2 for prototype).
 - [ ] **Bridge**: Relay control abstraction layer with active-low inversion and safe state enforcement (`0xFF` on boot).
 - [ ] **Bridge**: Opto-isolated digital input debouncing engine (100 Hz sampling).
 - [ ] **Bridge**: I2C2 driver for 2x Single Point LiDAR sensors (TFmini-Plus).

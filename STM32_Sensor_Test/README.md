@@ -38,8 +38,26 @@ Sensor ToF LiDAR presisi tinggi untuk docking assist dan deteksi jarak dekat:
   - Sensor Kiri: `0x10` (8-bit Write: `0x20`)
   - Sensor Kanan: `0x11` (8-bit Write: `0x22`)
 
-> **CATATAN RESISTOR PULL-UP:**
-> Jalur I2C adalah tipe open-drain. Jika modul sensor Anda tidak memiliki resistor pull-up bawaan pada modulnya, pasang resistor 2.2 kΩ hingga 4.7 kΩ dari masing-masing pin SCL dan SDA ke pin **3.3V** STM32.
+### C. Dual PCF8574 / PCF8574T I/O Expanders (Dual Bus: I2C1 & I2C2)
+Modul expander 8-bit untuk Digital Output (Relay DOUT1..DOUT8) dan Digital Input (Bumpers DIN1..DIN8):
+
+#### 1. Modul DO (Digital Output / Relays) - Bus I2C1:
+| Pin Modul PCF8574 | Pin BlackPill STM32 | Keterangan |
+| :--- | :--- | :--- |
+| **VCC** | **3.3V** atau **5V** | Suplai logika modul |
+| **GND** | **GND** | Ground bersama |
+| **SCL** | **PB6** | I2C1 SCL (Pull-up 4.7kΩ ke 3.3V) |
+| **SDA** | **PB7** | I2C1 SDA (Pull-up 4.7kΩ ke 3.3V) |
+
+#### 2. Modul DI (Digital Input / Sensors) - Bus I2C2:
+| Pin Modul PCF8574 | Pin BlackPill STM32 | Keterangan |
+| :--- | :--- | :--- |
+| **VCC** | **3.3V** atau **5V** | Suplai logika modul |
+| **GND** | **GND** | Ground bersama |
+| **SCL** | **PB10** | I2C2 SCL (Pull-up 4.7kΩ ke 3.3V) |
+| **SDA** | **PB3** | I2C2 SDA (AF9, Pull-up 4.7kΩ ke 3.3V) |
+
+> **Keuntungan Dual-Bus:** Karena berada pada bus I2C fisik yang berbeda (I2C1 dan I2C2), kedua modul dapat beroperasi penuh secara independen tanpa khawatir terjadi konflik alamat I2C (bahkan jika keduanya memiliki alamat yang sama seperti `0x24`).
 
 ---
 
@@ -58,7 +76,11 @@ cmake --build STM32_Sensor_Test/build
 
 Pastikan ST-Link V2 terhubung ke pin SWD (SWDIO, SWCLK, GND, 3.3V):
 ```bash
+# Untuk Sensor Test (DYP-A22 + TFmini-S)
 ./tools/flash_sensor_test.sh
+
+# Untuk PCF8574 / PCF8574T Tester
+./tools/flash_pcf8574_test.sh
 ```
 
 ---
@@ -67,7 +89,13 @@ Pastikan ST-Link V2 terhubung ke pin SWD (SWDIO, SWCLK, GND, 3.3V):
 
 Setelah flashing selesai, STM32 akan mereset dan terdeteksi sebagai port USB CDC `/dev/ttyACM0`.
 
-### Menggunakan Monitor Python Bawaan:
+### Menggunakan Monitor Interaktif PCF8574:
+```bash
+./STM32_Sensor_Test/run_pcf8574.sh
+```
+*Dapat langsung menekan tombol `0`..`4`, `a`, `f`, `s`, `h` pada keyboard secara interaktif.*
+
+### Menggunakan Monitor Sensor Bawaan:
 ```bash
 ./STM32_Sensor_Test/run_monitor.sh
 ```

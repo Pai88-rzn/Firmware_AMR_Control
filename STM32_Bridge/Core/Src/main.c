@@ -67,8 +67,8 @@ int main(void)
   OnboardLEDs_Init();
   OnboardLEDs_Set(LED_SYS_STATUS, true); /* Turn on at boot */
 
-  /* Initialize Dual PCF8574 Expanders (Relays default 0xFF / de-energized failsafe) */
-  PCF8574_Init(&hi2c3);
+  /* Initialize Dual PCF8574 Expanders (Auto-detects PCB I2C3 or Dual-Bus I2C1/I2C2) */
+  PCF8574_InitAuto(&hi2c1, &hi2c2, &hi2c3);
 
   /* Initialize Safety Monitor */
   SafetyMonitor_Init(&hi2c3);

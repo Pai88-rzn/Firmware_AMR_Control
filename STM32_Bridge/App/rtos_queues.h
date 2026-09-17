@@ -46,6 +46,11 @@ extern QueueHandle_t xTelemetryQueue;
 extern QueueHandle_t xRelayCmdQueue;
 extern QueueHandle_t xEmergencyQueue;
 
+#include "semphr.h"
+extern SemaphoreHandle_t xI2C1Mutex;
+extern SemaphoreHandle_t xI2C2Mutex;
+extern SemaphoreHandle_t xI2C3Mutex;
+
 bool RTOS_Queues_Init(void);
 
 #ifdef __cplusplus

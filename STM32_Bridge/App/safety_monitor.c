@@ -22,6 +22,13 @@ void SafetyMonitor_Init(I2C_HandleTypeDef *hi2c3)
 void SafetyMonitor_FeedWatchdog(void)
 {
   g_last_watchdog_feed = HAL_GetTick();
+  if (g_safety_state == SAFETY_WATCHDOG_TIMEOUT)
+  {
+    if ((g_last_inputs_active_high & (INPUT_BIT_ESTOP | BUMPER_MASK_ALL)) == 0)
+    {
+      g_safety_state = SAFETY_OK;
+    }
+  }
 }
 
 void SafetyMonitor_Step(I2C_HandleTypeDef *hi2c3)

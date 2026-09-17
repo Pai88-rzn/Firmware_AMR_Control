@@ -87,13 +87,46 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   return (USBD_OK);
 }
 
+#define CDC_RX_RING_SIZE 256
+static uint8_t s_cdc_rx_ring[CDC_RX_RING_SIZE];
+static volatile uint16_t s_cdc_rx_head = 0;
+static volatile uint16_t s_cdc_rx_tail = 0;
+
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
-  (void)Buf;
-  (void)Len;
+  if (Buf && Len && *Len > 0)
+  {
+    for (uint32_t i = 0; i < *Len; i++)
+    {
+      uint16_t next = (uint16_t)((s_cdc_rx_head + 1) % CDC_RX_RING_SIZE);
+      if (next != s_cdc_rx_tail)
+      {
+        s_cdc_rx_ring[s_cdc_rx_head] = Buf[i];
+        s_cdc_rx_head = next;
+      }
+    }
+  }
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &UserRxBufferFS[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
+}
+
+int CDC_GetChar(uint8_t *ch)
+{
+  if (s_cdc_rx_head == s_cdc_rx_tail) return 0;
+  if (ch)
+  {
+    *ch = s_cdc_rx_ring[s_cdc_rx_tail];
+  }
+  s_cdc_rx_tail = (uint16_t)((s_cdc_rx_tail + 1) % CDC_RX_RING_SIZE);
+  return 1;
+}
+
+int CDC_Available(void)
+{
+  if (s_cdc_rx_head >= s_cdc_rx_tail)
+    return (s_cdc_rx_head - s_cdc_rx_tail);
+  return (CDC_RX_RING_SIZE - s_cdc_rx_tail + s_cdc_rx_head);
 }
 
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)

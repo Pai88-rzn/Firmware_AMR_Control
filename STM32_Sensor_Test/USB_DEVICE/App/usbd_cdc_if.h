@@ -20,6 +20,8 @@
 extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
 
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
+int CDC_GetChar(uint8_t *ch);
+int CDC_Available(void);
 
 #ifdef __cplusplus
 }

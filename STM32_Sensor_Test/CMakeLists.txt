@@ -47,6 +47,7 @@ set(COMMON_SOURCES
 
     # Drivers BSP
     Drivers/BSP/onboard_leds.c
+    Drivers/BSP/pcf8574.c
 
     # USB Device Stack
     USB_DEVICE/App/usb_device.c
@@ -113,3 +114,20 @@ add_custom_command(TARGET TFmini_I2C_Converter.elf POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:TFmini_I2C_Converter.elf> TFmini_I2C_Converter.bin
     COMMAND ${CMAKE_SIZE_UTIL} --format=berkeley $<TARGET_FILE:TFmini_I2C_Converter.elf>
 )
+
+# ----------------------------------------------------
+# TARGET 3: STM32_PCF8574_Test (Interactive PCF8574 Diagnostics)
+# ----------------------------------------------------
+set(PCF8574_TEST_SOURCES
+    Core/Src/main_pcf8574.c
+    ${COMMON_SOURCES}
+)
+
+add_executable(STM32_PCF8574_Test.elf ${PCF8574_TEST_SOURCES})
+
+add_custom_command(TARGET STM32_PCF8574_Test.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:STM32_PCF8574_Test.elf> STM32_PCF8574_Test.hex
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:STM32_PCF8574_Test.elf> STM32_PCF8574_Test.bin
+    COMMAND ${CMAKE_SIZE_UTIL} --format=berkeley $<TARGET_FILE:STM32_PCF8574_Test.elf>
+)
+

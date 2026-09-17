@@ -15,7 +15,7 @@ static uint32_t g_last_flash_toggle = 0;
 
 void IoController_Init(I2C_HandleTypeDef *hi2c3)
 {
-  g_tower_mode = TOWER_LIGHT_GREEN;
+  g_tower_mode = TOWER_LIGHT_OFF;
   g_buzzer_until_tick = 0;
   g_flash_state = false;
   g_last_flash_toggle = HAL_GetTick();
