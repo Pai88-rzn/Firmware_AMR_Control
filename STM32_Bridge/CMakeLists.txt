@@ -5,9 +5,9 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-# Device target definitions for STM32F401CC
+# Device target definitions for STM32F411CE
 add_definitions(
-    -DSTM32F401xC
+    -DSTM32F411xE
     -DUSE_HAL_DRIVER
     -D__ARM_ARCH_7EM__=1
     -DARM_MATH_CM4
@@ -19,7 +19,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CPU_FLAGS} -Wall -Wextra -fdata-sections -
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} ${CPU_FLAGS} -x assembler-with-cpp")
 
 # Linker flags
-set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/STM32F401CCUx_FLASH.ld")
+set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/STM32F411CEUx_FLASH.ld")
 set(CMAKE_EXE_LINKER_FLAGS
     "${CPU_FLAGS} -T\"${LINKER_SCRIPT}\" -Wl,-Map=${PROJECT_NAME}.map,--cref -Wl,--gc-sections -specs=nano.specs -lc -lm -Wl,--no-warn-rwx-segments"
 )
@@ -50,7 +50,7 @@ set(SOURCES
     Core/Src/stm32f4xx_it.c
     Core/Src/system_stm32f4xx.c
     Core/Src/syscalls.c
-    Core/Src/startup_stm32f401xc.s
+    Core/Src/startup_stm32f411xe.s
 
     # Drivers BSP
     Drivers/BSP/onboard_leds.c

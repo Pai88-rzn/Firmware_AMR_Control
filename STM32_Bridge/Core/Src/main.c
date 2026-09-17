@@ -97,23 +97,23 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration for STM32F401CC
+  * @brief System Clock Configuration for STM32F411CE
   *        HSE = 25 MHz
   *        PLL_M = 25 -> 1 MHz VCO in
-  *        PLL_N = 336 -> 336 MHz VCO
-  *        PLL_P = RCC_PLLP_DIV4 -> SYSCLK = 84 MHz (Max specification for F401)
-  *        PLL_Q = 7 -> 48 MHz USB OTG FS Clock (336 / 7 = 48 MHz exact)
-  *        HCLK = 84 MHz, PCLK1 = 42 MHz (Max 42 MHz), PCLK2 = 84 MHz (Max 84 MHz)
-  *        FLASH_LATENCY_2 for 84 MHz @ 3.3V
+  *        PLL_N = 192 -> 192 MHz VCO
+  *        PLL_P = RCC_PLLP_DIV2 -> SYSCLK = 96 MHz (Max 100 MHz for F411)
+  *        PLL_Q = 4 -> 48 MHz USB OTG FS Clock (192 / 4 = 48.000 MHz exact)
+  *        HCLK = 96 MHz, PCLK1 = 48 MHz (Max 50 MHz), PCLK2 = 96 MHz (Max 100 MHz)
+  *        FLASH_LATENCY_3 for 96 MHz @ 3.3V
   */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /* Configure the main internal regulator output voltage */
+  /* Configure the main internal regulator output voltage for high frequency (>84 MHz) */
   __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /* Initializes the RCC Oscillators according to the specified parameters */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
@@ -121,9 +121,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 25;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLN = 192;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -137,7 +137,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
   {
     Error_Handler();
   }
