@@ -109,67 +109,52 @@ HAL_StatusTypeDef PCF8574_InitAuto(I2C_HandleTypeDef *hi2c1_handle,
                                    I2C_HandleTypeDef *hi2c2_handle,
                                    I2C_HandleTypeDef *hi2c3_handle)
 {
+  (void)hi2c1_handle; /* I2C1 is dedicated to Ultrasonic Sensors per agents.md */
+  (void)hi2c2_handle; /* I2C2 is dedicated to LiDAR Sensors per agents.md */
+
   s_pcf_do_connected = false;
   s_pcf_di_connected = false;
 
-  /* Priority 1: Check Dedicated I2C3 (Custom PCB Bridge Board) */
-  if (hi2c3_handle != NULL)
+  /* Dedicated Bus I2C3 for PCF8574 Expanders per agents.md (PA8=SCL, PB4=SDA) */
+  I2C_HandleTypeDef *target_bus = (hi2c3_handle != NULL) ? hi2c3_handle : &hi2c3;
+  s_pcf_do_i2c = target_bus;
+  s_pcf_di_i2c = target_bus;
+  s_pcf_do_addr = PCF8574_ADDR_OUTPUT; /* 0x20 per agents.md Section 2.1 C.1 */
+  s_pcf_di_addr = PCF8574_ADDR_INPUT;  /* 0x21 per agents.md Section 2.1 C.2 */
+
+  /* 1. Priority: Check Default Addresses on I2C3 (IC2: 0x20 DO, IC3: 0x21 DI) */
+  if (CheckDevice(target_bus, PCF8574_ADDR_OUTPUT))
   {
-    if (CheckDevice(hi2c3_handle, PCF8574_ADDR_OUTPUT))
-    {
-      s_pcf_do_i2c = hi2c3_handle;
-      s_pcf_do_addr = PCF8574_ADDR_OUTPUT;
-      s_pcf_do_connected = true;
-    }
-    if (CheckDevice(hi2c3_handle, PCF8574_ADDR_INPUT))
-    {
-      s_pcf_di_i2c = hi2c3_handle;
-      s_pcf_di_addr = PCF8574_ADDR_INPUT;
-      s_pcf_di_connected = true;
-    }
+    s_pcf_do_addr = PCF8574_ADDR_OUTPUT;
+    s_pcf_do_connected = true;
+  }
+  if (CheckDevice(target_bus, PCF8574_ADDR_INPUT))
+  {
+    s_pcf_di_addr = PCF8574_ADDR_INPUT;
+    s_pcf_di_connected = true;
   }
 
-  /* Priority 2: Check Dual-Bus Prototype Setup (I2C1 for DO, I2C2 for DI) */
-  static const uint8_t search_addrs[] = {0x24, 0x20, 0x21, 0x22, 0x23, 0x25, 0x26, 0x27, 0x38, 0x3F};
-
-  if (!s_pcf_do_connected && hi2c1_handle != NULL)
+  /* 2. Secondary: Scan I2C3 ONLY for alternate addresses (e.g. 0x24 breakout boards) */
+  static const uint8_t search_addrs[] = {0x20, 0x21, 0x24, 0x22, 0x23, 0x25, 0x26, 0x27, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F};
+  if (!s_pcf_do_connected || !s_pcf_di_connected)
   {
     for (size_t i = 0; i < sizeof(search_addrs); i++)
     {
-      if (CheckDevice(hi2c1_handle, search_addrs[i]))
+      uint8_t addr = search_addrs[i];
+      if (CheckDevice(target_bus, addr))
       {
-        s_pcf_do_i2c = hi2c1_handle;
-        s_pcf_do_addr = search_addrs[i];
-        s_pcf_do_connected = true;
-        break;
+        if (!s_pcf_do_connected)
+        {
+          s_pcf_do_addr = addr;
+          s_pcf_do_connected = true;
+        }
+        else if (!s_pcf_di_connected && addr != s_pcf_do_addr)
+        {
+          s_pcf_di_addr = addr;
+          s_pcf_di_connected = true;
+        }
       }
     }
-  }
-
-  if (!s_pcf_di_connected && hi2c2_handle != NULL)
-  {
-    for (size_t i = 0; i < sizeof(search_addrs); i++)
-    {
-      if (CheckDevice(hi2c2_handle, search_addrs[i]))
-      {
-        s_pcf_di_i2c = hi2c2_handle;
-        s_pcf_di_addr = search_addrs[i];
-        s_pcf_di_connected = true;
-        break;
-      }
-    }
-  }
-
-  /* Fallback defaults if no physical response (safe simulation / disconnected state) */
-  if (!s_pcf_do_i2c)
-  {
-    s_pcf_do_i2c = (hi2c1_handle != NULL) ? hi2c1_handle : hi2c3_handle;
-    s_pcf_do_addr = PCF8574_ADDR_PROTOTYPE; /* 0x24 */
-  }
-  if (!s_pcf_di_i2c)
-  {
-    s_pcf_di_i2c = (hi2c2_handle != NULL) ? hi2c2_handle : hi2c3_handle;
-    s_pcf_di_addr = PCF8574_ADDR_PROTOTYPE; /* 0x24 */
   }
 
   /* Rule 5.1 Failsafe: All relays MUST default to OFF (de-energized) on startup.

@@ -2,14 +2,12 @@
   ******************************************************************************
   * @file           : pcf8574.h
   * @brief          : Header for Dual PCF8574 I/O Expanders on STM32_Bridge
-  *                   Supports:
-  *                   1. Dual-Bus Prototype Setup:
-  *                      - DO (Output Relays) on I2C1 (PB6/PB7) @ 0x24
-  *                      - DI (Input Sensors) on I2C2 (PB10/PB3) @ 0x24
-  *                   2. Single-Bus Custom PCB Setup:
-  *                      - DO on I2C3 (PA8/PB4) @ 0x20
-  *                      - DI on I2C3 (PA8/PB4) @ 0x21
-  *                   3. Dynamic Auto-Discovery at boot
+  *                   Strictly adheres to agents.md System Architecture:
+  *                   - Bus I2C1 (PB6/PB7): Dedicated to Ultrasonic Sonars (0x74, 0x75)
+  *                   - Bus I2C2 (PB10/PB3): Dedicated to ToF LiDARs (0x10, 0x11)
+  *                   - Bus I2C3 (PA8/PB4): Dedicated to Dual PCF8574 Expanders:
+  *                     * DO (Output Relays IC2) @ 0x20
+  *                     * DI (Input Sensors IC3) @ 0x21
   ******************************************************************************
   */
 
